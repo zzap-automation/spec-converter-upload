@@ -2,7 +2,7 @@
 
 Updates header text across Word spec documents and exports PDFs. No logins, no installs — works in any browser.
 
-**Live tool:** `https://zzap-automation.github.io/spec-converter/`
+**Live tool:** `https://zzap-automation.github.io/spec-converter-upload/`
 
 ---
 
