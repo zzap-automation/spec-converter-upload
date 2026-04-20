@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spec Header Converter</title>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+    .card { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 2rem; width: 100%; max-width: 580px; }
+    .logo { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: #aaa; text-transform: uppercase; margin-bottom: 1.5rem; }
+    h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+    .subtitle { font-size: 14px; color: #666; margin-bottom: 1.75rem; line-height: 1.5; }
+    label { display: block; font-size: 12px; color: #666; margin-bottom: 6px; }
+    .field { margin-bottom: 1.25rem; }
+    input[type=text], input[type=date] { width: 100%; padding: 8px 12px; border: 1px solid rgba(0,0,0,0.15); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; color: inherit; outline: none; height: 36px; transition: border-color .15s; }
+    input:focus { border-color: rgba(0,0,0,0.4); }
+    .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill { padding: 5px 13px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.15); font-size: 13px; cursor: pointer; background: transparent; color: #555; font-family: inherit; transition: all .15s; }
+    .pill.active { background: #e8f0fe; color: #1a56c4; border-color: #a8c0f0; font-weight: 500; }
+    .pill:hover:not(.active) { background: #f5f5f3; }
+    hr { border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 1.5rem 0; }
+    .drop-zone { border: 1.5px dashed rgba(0,0,0,0.2); border-radius: 10px; padding: 2rem; text-align: center; cursor: pointer; transition: all .15s; background: #fafaf8; }
+    .drop-zone:hover, .drop-zone.over { border-color: #1a56c4; background: #f0f4ff; }
+    .drop-icon { width: 32px; height: 32px; margin: 0 auto 10px; opacity: .3; }
+    .drop-text { font-size: 14px; color: #666; margin-bottom: 4px; }
+    .drop-hint { font-size: 12px; color: #aaa; }
+    .file-list { margin-top: 10px; }
+    .file-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #f5f5f3; border-radius: 6px; margin-top: 6px; font-size: 13px; }
+    .file-remove { background: none; border: none; cursor: pointer; color: #aaa; font-size: 16px; line-height: 1; padding: 0 2px; }
+    .file-remove:hover { color: #e24b4a; }
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+    .preview { background: #f9f8f6; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; padding: 10px 14px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.9; }
+    .hl { color: #1a56c4; font-weight: 600; }
+    .hint { font-size: 12px; color: #aaa; margin-top: 6px; }
+    .sec-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #aaa; margin-bottom: 12px; }
+    .btn-primary { width: 100%; padding: 10px; font-size: 15px; font-weight: 500; border-radius: 8px; border: 1px solid #a8c0f0; background: #e8f0fe; color: #1a56c4; cursor: pointer; font-family: inherit; transition: opacity .15s; margin-top: 1.25rem; }
+    .btn-primary:hover:not(:disabled) { opacity: .8; }
+    .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+    .prog-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 13px; color: #444; }
+    .prog-item:last-child { border-bottom: none; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: #ddd; }
+    .dot.waiting { background: #ddd; }
+    .dot.running { background: #f59e0b; animation: blink .7s ease-in-out infinite alternate; }
+    .dot.done    { background: #10b981; }
+    .dot.error   { background: #ef4444; }
+    @keyframes blink { to { opacity: .3; } }
+    .progress-bar-wrap { height: 4px; background: rgba(0,0,0,0.06); border-radius: 2px; margin: 1rem 0; overflow: hidden; }
+    .progress-bar { height: 100%; background: #1a56c4; border-radius: 2px; transition: width .3s ease; }
+    .progress-label { font-size: 12px; color: #aaa; margin-bottom: .5rem; }
+    .box-ok  { background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; font-size: 14px; color: #065f46; margin-top: 1rem; line-height: 1.6; }
+    .box-err { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #991b1b; margin-top: 1rem; line-height: 1.6; }
+    .btn-dl  { display: block; width: 100%; padding: 10px; font-size: 15px; font-weight: 500; border-radius: 8px; border: 1px solid #a7f3d0; background: #f0fdf4; color: #065f46; cursor: pointer; font-family: inherit; text-align: center; text-decoration: none; margin-top: .75rem; transition: opacity .15s; }
+    .btn-dl:hover { opacity: .8; }
+    #screen-progress { display: none; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Zwicker Zareski Architecture</div>
+
+  <div id="screen-main">
+    <h1>Spec header converter</h1>
+    <p class="subtitle">Upload your spec documents, set the submission details, and download the updated PDFs — no logins or installs required.</p>
+
+    <div class="sec-label">Submission details</div>
+
+    <div class="field">
+      <label>Submission status</label>
+      <div class="pills">
+        <button class="pill" onclick="setStatus(this,'Not for Construction')">Not for construction</button>
+        <button class="pill active" onclick="setStatus(this,'Issued for Review')">Issued for review</button>
+        <button class="pill" onclick="setStatus(this,'Issued for Construction')">Issued for construction</button>
+        <button class="pill" onclick="setStatus(this,'Issued for Tender')">Issued for tender</button>
+        <button class="pill" onclick="setStatus(this,'Reissued for Tender')">Reissued for tender</button>
+        <button class="pill" onclick="setStatus(this,'Reissued for Construction')">Reissued for construction</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Submission date</label>
+        <input type="date" id="sub-date" oninput="updatePreview()">
+      </div>
+      <div class="field">
+        <label>Version</label>
+        <input type="text" id="version" placeholder="e.g. V9" oninput="updatePreview()">
+      </div>
+    </div>
+
+    <hr>
+    <div class="sec-label">Documents</div>
+
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+      </svg>
+      <div class="drop-text">Drop .docx files here or click to browse</div>
+      <div class="drop-hint">Select multiple files at once</div>
+    </div>
+    <input type="file" id="file-input" multiple accept=".docx" style="display:none" onchange="onFileSelect(this.files)">
+    <div class="file-list" id="file-list"></div>
+
+    <hr>
+    <div class="sec-label">Preview — blue circle area</div>
+    <div class="preview">
+      Page 1<br>
+      <span class="hl" id="prev-date">—</span><br>
+      <span class="hl" id="prev-status">Issued for Review</span>
+    </div>
+    <div class="hint">This is exactly what will appear in the header after processing.</div>
+
+    <button class="btn-primary" id="run-btn" onclick="runJob()" disabled>Run</button>
+  </div>
+
+  <div id="screen-progress">
+    <h1 style="margin-bottom:1rem">Processing documents</h1>
+    <div class="progress-label" id="prog-label">Starting...</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="prog-bar" style="width:0%"></div>
+    </div>
+    <div id="prog-list"></div>
+    <div id="result"></div>
+    <button class="btn-primary" id="btn-back" onclick="goBack()" style="display:none;margin-top:1rem">Process more files</button>
+  </div>
+</div>
+
+<script>
+const BACKEND_URL = 'https://spec-converter-upload.onrender.com/convert';
+
+let selectedFiles = [];
+let activeStatus  = 'Issued for Review';
+
+function onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
+function onDragLeave()  { document.getElementById('drop-zone').classList.remove('over'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  addFiles(Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.docx')));
+}
+function onFileSelect(files) { addFiles(Array.from(files)); }
+
+function addFiles(files) {
+  files.forEach(f => { if (!selectedFiles.find(x => x.name === f.name)) selectedFiles.push(f); });
+  renderFileList();
+  checkForm();
+}
+
+function removeFile(name) {
+  selectedFiles = selectedFiles.filter(f => f.name !== name);
+  renderFileList();
+  checkForm();
+}
+
+function renderFileList() {
+  document.getElementById('file-list').innerHTML = selectedFiles.map(f => `
+    <div class="file-item">
+      <span>${f.name}</span>
+      <button class="file-remove" onclick="removeFile('${f.name}')" title="Remove">&#x2715;</button>
+    </div>`).join('');
+}
+
+function setStatus(el, val) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  activeStatus = val;
+  updatePreview();
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso + 'T00:00:00').toLocaleString('en-CA', { month: 'long', year: 'numeric' });
+}
+
+function updatePreview() {
+  const ver = document.getElementById('version').value.trim();
+  const dt  = document.getElementById('sub-date').value;
+  document.getElementById('prev-date').textContent   = fmtDate(dt) + (ver ? '. ' + ver : '');
+  document.getElementById('prev-status').textContent = activeStatus;
+  checkForm();
+}
+
+function checkForm() {
+  const ok  = selectedFiles.length > 0 && document.getElementById('sub-date').value.length > 0;
+  const btn = document.getElementById('run-btn');
+  btn.disabled    = !ok;
+  btn.textContent = ok ? `Run — process ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}` : 'Run';
+}
+
+function goBack() {
+  document.getElementById('screen-progress').style.display = 'none';
+  document.getElementById('screen-main').style.display     = 'block';
+}
+
+function setProgress(done, total) {
+  document.getElementById('prog-bar').style.width   = Math.round((done / total) * 100) + '%';
+  document.getElementById('prog-label').textContent = `${done} of ${total} complete`;
+}
+
+function addRow(id, label, state) {
+  const div = document.createElement('div');
+  div.className = 'prog-item';
+  div.innerHTML = `<div class="dot ${state}" id="dot-${id}"></div><span id="lbl-${id}">${label}</span>`;
+  document.getElementById('prog-list').appendChild(div);
+}
+
+function setDot(id, cls)   { const e = document.getElementById(`dot-${id}`); if (e) e.className = 'dot ' + cls; }
+function setLabel(id, txt) { const e = document.getElementById(`lbl-${id}`); if (e) e.textContent = txt; }
+
+async function runJob() {
+  const dateIso = document.getElementById('sub-date').value;
+  const version = document.getElementById('version').value.trim();
+  const dateStr = fmtDate(dateIso) + (version ? '. ' + version : '');
+  const total   = selectedFiles.length;
+
+  document.getElementById('screen-main').style.display     = 'none';
+  document.getElementById('screen-progress').style.display = 'block';
+  document.getElementById('prog-list').innerHTML  = '';
+  document.getElementById('result').innerHTML     = '';
+  document.getElementById('btn-back').style.display = 'none';
+
+  selectedFiles.forEach((f, i) => addRow(i, f.name, 'waiting'));
+  setProgress(0, total);
+
+  const finalZip = new JSZip();
+  let failed = 0;
+
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const file = selectedFiles[i];
+    setDot(i, 'running');
+
+    try {
+      const fd = new FormData();
+      fd.append('status', activeStatus);
+      fd.append('date',   dateStr);
+      fd.append('files',  file);
+
+      const resp = await fetch(BACKEND_URL, { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error(`Server error ${resp.status}: ${await resp.text()}`);
+
+      // Server returns a single-file zip — extract the PDF using JSZip
+      const zipBuf  = await resp.arrayBuffer();
+      const zipIn   = await JSZip.loadAsync(zipBuf);
+      const pdfName = file.name.replace(/\.docx$/i, '.pdf');
+      const pdfFile = Object.values(zipIn.files).find(f => f.name.toLowerCase().endsWith('.pdf'));
+      if (!pdfFile) throw new Error('No PDF found in server response');
+      const pdfBytes = await pdfFile.async('arraybuffer');
+
+      finalZip.file(pdfName, pdfBytes);
+
+      setDot(i, 'done');
+      setLabel(i, pdfName);
+
+    } catch(e) {
+      setDot(i, 'error');
+      setLabel(i, file.name + ' — failed: ' + e.message);
+      failed++;
+    }
+
+    setProgress(i + 1, total);
+  }
+
+  const succeeded = total - failed;
+
+  if (succeeded > 0) {
+    const blob = await finalZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    const url  = URL.createObjectURL(blob);
+    document.getElementById('result').innerHTML = `
+      <div class="box-ok">${succeeded} PDF${succeeded !== 1 ? 's' : ''} ready${failed > 0 ? ` — ${failed} failed (see above)` : ''}.</div>
+      <a class="btn-dl" href="${url}" download="converted-pdfs.zip">Download all PDFs (.zip)</a>`;
+  } else {
+    document.getElementById('result').innerHTML =
+      `<div class="box-err">All files failed. Check your connection and try again.</div>`;
+  }
+
+  document.getElementById('btn-back').style.display = 'block';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('sub-date').value = new Date().toISOString().split('T')[0];
+  updatePreview();
+});
+</script>
+</body>
+</html>
